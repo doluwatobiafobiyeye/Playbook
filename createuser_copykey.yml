@@ -1,0 +1,24 @@
+---
+- hosts: application
+  remote_user: root
+  become: yes
+  become_user: root
+  gather_facts: no
+  tasks:
+  - name: Create New user "Ansibleadmin"
+    user:
+      name: ansibleadmin
+      shell: /bin/bash
+      groups: wheel
+      state: present
+      createhome: yes
+  - name: sudo without password for wheel group
+    copy:
+      content: '%wheel ALL=(ALL:ALL) NOPASSWD:ALL'
+      dest: /etc/sudoers.d/wheel_nopasswd
+      mode: 0440
+  - name: Copy the key and add to the server
+    authorized_key:
+      user: ansibleadmin
+      key: "{{ lookup('file', '/home/ansibleadmin/.ssh/id_rsa.pub') }}"
+      state: present
