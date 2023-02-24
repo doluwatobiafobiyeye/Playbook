@@ -1,0 +1,6 @@
+---
+- name: Test Ping-able server
+  hosts: all
+  tasks:
+    - name: ping my websserver
+      action: ping 
