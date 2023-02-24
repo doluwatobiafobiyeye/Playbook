@@ -1,6 +1,7 @@
 ---
 - name: Test Ping-able server
   hosts: all
+  gather_facts: yes
   tasks:
     - name: ping my websserver
       action: ping 
