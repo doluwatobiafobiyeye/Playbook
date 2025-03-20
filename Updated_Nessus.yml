@@ -4,8 +4,8 @@
   become: yes
   vars:
     ubuntu_package: "./NessusAgent-ubuntu1604_amd64.deb"
-    redhat7_package: "./NessusAgent-es7.x86_64.rpm"
-    redhat8_package: "./NessusAgent-es8.x86_64.rpm"
+    redhat7_package: "./NessusAgent-el7.x86_64.rpm"
+    redhat8_package: "./NessusAgent-el8.x86_64.rpm"
     suse_package: "./NessusAgent-suse12.x86_64.rpm"
     remote_path: "/tmp"
     nessus_key: "c099f821b445cc63ac0f5f6005917a17ef7f360c961e2c2c9c3cadb580f01eca"
