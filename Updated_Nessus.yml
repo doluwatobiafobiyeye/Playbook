@@ -1,0 +1,89 @@
+---
+- name: Install and Configure Nessus Agent
+  hosts: all
+  become: yes
+  vars:
+    ubuntu_package: "./NessusAgent-ubuntu1604_amd64.deb"
+    redhat7_package: "./NessusAgent-es7.x86_64.rpm"
+    redhat8_package: "./NessusAgent-es8.x86_64.rpm"
+    suse_package: "./NessusAgent-suse12.x86_64.rpm"
+    remote_path: "/tmp"
+    nessus_key: "c099f821b445cc63ac0f5f6005917a17ef7f360c961e2c2c9c3cadb580f01eca"
+    proxy_host: "cnfappproxy.geico.net"
+    proxy_port: "80"
+    groups:
+      RedHat: "Redhat"
+      Ubuntu: "Ubuntu"
+      Suse: "SUSE"
+  
+  tasks:
+    - name: Copy package to remote server (Ubuntu)
+      copy:
+        src: "{{ ubuntu_package }}"
+        dest: "{{ remote_path }}/{{ ubuntu_package | basename }}"
+      when: ansible_os_family == "Debian"
+
+    - name: Copy package to remote server (Red Hat 7)
+      copy:
+        src: "{{ redhat7_package }}"
+        dest: "{{ remote_path }}/{{ redhat7_package | basename }}"
+      when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int < 8
+
+    - name: Copy package to remote server (Red Hat 8 or later)
+      copy:
+        src: "{{ redhat8_package }}"
+        dest: "{{ remote_path }}/{{ redhat8_package | basename }}"
+      when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 8
+
+    - name: Copy package to remote server (SUSE)
+      copy:
+        src: "{{ suse_package }}"
+        dest: "{{ remote_path }}/{{ suse_package | basename }}"
+      when: ansible_os_family == "Suse"
+
+    - name: Install Nessus Agent (Ubuntu)
+      apt:
+        deb: "{{ remote_path }}/{{ ubuntu_package | basename }}"
+      when: ansible_os_family == "Debian"
+
+    - name: Install Nessus Agent (Red Hat 8 or later)
+      command: "dnf install -y {{ remote_path }}/{{ redhat8_package | basename }}"
+      when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 8
+
+    - name: Install Nessus Agent (Red Hat 7 or earlier)
+      command: "rpm -ivh {{ remote_path }}/{{ redhat7_package | basename }}"
+      when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int < 8
+
+    - name: Install Nessus Agent (SUSE)
+      command: "zypper install -y {{ remote_path }}/{{ suse_package | basename }}"
+      when: ansible_os_family == "Suse"
+
+    - name: Link Nessus Agent
+      command: >
+        /opt/nessus_agent/sbin/nessuscli agent link 
+        --key={{ nessus_key }} 
+        --cloud 
+        --proxy-host={{ proxy_host }} 
+        --proxy-port={{ proxy_port }} 
+        --groups="{{ groups[ansible_os_family] }}"
+
+    - name: Start and enable Nessus Agent service
+      systemd:
+        name: nessusagent
+        state: started
+        enabled: yes
+
+    - name: Verify Nessus Agent installation
+      command: "/opt/nessus_agent/sbin/nessuscli agent status"
+      register: nessus_status
+      changed_when: false
+      failed_when: "'Error' in nessus_status.stdout"
+
+    - name: Show Nessus Agent status
+      debug:
+        msg: "{{ nessus_status.stdout }}"
+
+    - name: Clean up package file from remote server
+      file:
+        path: "{{ remote_path }}/{{ ubuntu_package | basename if ansible_os_family == 'Debian' else (redhat7_package | basename if ansible_distribution_major_version|int < 8 else redhat8_package | basename) if ansible_os_family == 'RedHat' else suse_package | basename }}"
+        state: absent
