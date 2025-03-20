@@ -58,20 +58,41 @@
       command: "zypper install -y {{ remote_path }}/{{ suse_package | basename }}"
       when: ansible_os_family == "Suse"
 
-    - name: Link Nessus Agent
-      command: >
-        /opt/nessus_agent/sbin/nessuscli agent link 
-        --key={{ nessus_key }} 
-        --cloud 
-        --proxy-host={{ proxy_host }} 
-        --proxy-port={{ proxy_port }} 
-        --groups="{{ groups[ansible_os_family] }}"
+    - name: Link Nessus Agent and Start Service (Ubuntu)
+      shell: >
+        /opt/nessus_agent/sbin/nessuscli agent link \
+        --key={{ nessus_key }} \
+        --cloud \
+        --proxy-host={{ proxy_host }} \
+        --proxy-port={{ proxy_port }} \
+        --groups="Ubuntu" && \
+        /sbin/service nessusagent start && \
+        systemctl enable nessusagent
+      when: ansible_os_family == "Debian"
 
-    - name: Start and enable Nessus Agent service
-      systemd:
-        name: nessusagent
-        state: started
-        enabled: yes
+    - name: Link Nessus Agent and Start Service (Red Hat)
+      shell: >
+        /opt/nessus_agent/sbin/nessuscli agent link \
+        --key={{ nessus_key }} \
+        --cloud \
+        --proxy-host={{ proxy_host }} \
+        --proxy-port={{ proxy_port }} \
+        --groups="Redhat" && \
+        /sbin/service nessusagent start && \
+        systemctl enable nessusagent
+      when: ansible_os_family == "RedHat"
+
+    - name: Link Nessus Agent and Start Service (SUSE)
+      shell: >
+        /opt/nessus_agent/sbin/nessuscli agent link \
+        --key={{ nessus_key }} \
+        --cloud \
+        --proxy-host={{ proxy_host }} \
+        --proxy-port={{ proxy_port }} \
+        --groups="SUSE" && \
+        /sbin/service nessusagent start && \
+        systemctl enable nessusagent
+      when: ansible_os_family == "Suse"
 
     - name: Verify Nessus Agent installation
       command: "/opt/nessus_agent/sbin/nessuscli agent status"
