@@ -1,0 +1,89 @@
+---
+- name: Install and configure Nessus Agent
+  hosts: all
+  become: yes
+  vars:
+    os_family: "{{ ansible_os_family }}"
+    nessus_key: "c099f821b445cc63ac0f5f6005917a17ef7f360c961e2c2c9c3cadb580f01eca"
+    proxy_host: "cnfappproxy.geico.net"
+    proxy_port: "80"
+    packages:
+      RedHat:
+        "7": "NessusAgent-es7.x86_64.rpm"
+        "8": "NessusAgent-es8.x86_64.rpm"
+        "9": "NessusAgent-es8.x86_64.rpm"
+      Ubuntu: "NessusAgent-ubuntu1604_amd64.deb"
+      Suse: "NessusAgent-suse12.x86_64.rpm"
+    groups:
+      RedHat: "Redhat"
+      Ubuntu: "Ubuntu"
+      Suse: "SUSE"
+  tasks:
+
+    - name: Determine package name and group
+      set_fact:
+        package_name: >-
+          {% if os_family == "RedHat" %}
+            {{ packages['RedHat'][ansible_distribution_major_version] }}
+          {% elif os_family == "Debian" %}
+            {{ packages['Ubuntu'] }}
+          {% elif os_family == "Suse" %}
+            {{ packages['Suse'] }}
+          {% endif %}
+        group_name: >-
+          {% if os_family in groups %}
+            {{ groups[os_family] }}
+          {% else %}
+            "Unknown"
+          {% endif %}
+
+    - name: Copy Nessus Agent package to remote server
+      copy:
+        src: "files/{{ package_name }}"
+        dest: "/tmp/{{ package_name }}"
+
+    - name: Install Nessus Agent for RedHat using dnf
+      command: "dnf install -y /tmp/{{ package_name }}"
+      when: os_family == "RedHat"
+
+    - name: Install Nessus Agent for RedHat 7 or earlier using rpm
+      command: "rpm -ivh /tmp/{{ package_name }}"
+      when: os_family == "RedHat" and ansible_distribution_major_version|int < 8
+
+    - name: Install Nessus Agent for Ubuntu
+      command: "dpkg -i /tmp/{{ package_name }}"
+      when: os_family == "Debian"
+
+    - name: Install Nessus Agent for SUSE
+      command: "zypper install -y /tmp/{{ package_name }}"
+      when: os_family == "Suse"
+
+    - name: Link Nessus Agent
+      command: >
+        /opt/nessus_agent/sbin/nessuscli agent link 
+        --key={{ nessus_key }} 
+        --cloud 
+        --proxy-host={{ proxy_host }} 
+        --proxy-port={{ proxy_port }} 
+        --groups="{{ group_name }}"
+
+    - name: Start and enable Nessus Agent service
+      systemd:
+        name: nessusagent
+        state: started
+        enabled: yes
+
+    - name: Verify Nessus Agent installation
+      command: "/opt/nessus_agent/sbin/nessuscli agent status"
+      register: nessus_status
+      changed_when: false
+      failed_when: "'Error' in nessus_status.stdout"
+
+    - name: Show Nessus Agent status
+      debug:
+        msg: "{{ nessus_status.stdout }}"
+
+    - name: Clean up installation file
+      file:
+        path: "/tmp/{{ package_name }}"
+        state: absent
