@@ -1,47 +1,42 @@
 ---
-- name: Patch RHEL 7 and 8 servers without reboot
+- name: Patch RHEL 7 and RHEL 8 servers without reboot and show latest kernel
   hosts: all
   become: true
+  gather_facts: true
+
   vars:
-    rhel7_kernel_package: "kernel"
-    rhel8_kernel_package: "kernel-core"
+    kernel_pkg_rhel7: "kernel"
+    kernel_pkg_rhel8: "kernel-core"
 
   tasks:
 
-    - name: Gather OS major version
+    - name: Determine OS major version
       ansible.builtin.set_fact:
         os_major_version: "{{ ansible_distribution_major_version | int }}"
 
-    - name: Run YUM update on RHEL 7
-      yum:
+    - name: Update all packages using 'package' module
+      ansible.builtin.package:
         name: "*"
         state: latest
-      when: os_major_version == 7
 
-    - name: Run DNF update on RHEL 8
-      dnf:
-        name: "*"
-        state: latest
-      when: os_major_version == 8
-
-    - name: List latest installed kernel package for RHEL 7
-      shell: "rpm -q {{ rhel7_kernel_package }} | sort -V | tail -n 1"
-      register: rhel7_kernel_result
+    - name: Get latest installed kernel on RHEL 7
+      ansible.builtin.shell: "rpm -q {{ kernel_pkg_rhel7 }} | sort -V | tail -n 1"
+      register: kernel_info_rhel7
       changed_when: false
       when: os_major_version == 7
 
-    - name: List latest installed kernel-core package for RHEL 8
-      shell: "rpm -q {{ rhel8_kernel_package }} | sort -V | tail -n 1"
-      register: rhel8_kernel_result
+    - name: Get latest installed kernel on RHEL 8
+      ansible.builtin.shell: "rpm -q {{ kernel_pkg_rhel8 }} | sort -V | tail -n 1"
+      register: kernel_info_rhel8
       changed_when: false
       when: os_major_version == 8
 
-    - name: Show latest kernel installed (RHEL 7)
-      debug:
-        msg: "Latest installed kernel (RHEL 7): {{ rhel7_kernel_result.stdout }}"
+    - name: Show latest kernel on RHEL 7
+      ansible.builtin.debug:
+        msg: "Latest installed kernel on RHEL 7: {{ kernel_info_rhel7.stdout }}"
       when: os_major_version == 7
 
-    - name: Show latest kernel installed (RHEL 8)
-      debug:
-        msg: "Latest installed kernel (RHEL 8): {{ rhel8_kernel_result.stdout }}"
+    - name: Show latest kernel on RHEL 8
+      ansible.builtin.debug:
+        msg: "Latest installed kernel on RHEL 8: {{ kernel_info_rhel8.stdout }}"
       when: os_major_version == 8
