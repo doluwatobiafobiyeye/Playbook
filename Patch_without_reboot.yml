@@ -1,0 +1,47 @@
+---
+- name: Patch RHEL 7 and 8 servers without reboot
+  hosts: all
+  become: true
+  vars:
+    rhel7_kernel_package: "kernel"
+    rhel8_kernel_package: "kernel-core"
+
+  tasks:
+
+    - name: Gather OS major version
+      ansible.builtin.set_fact:
+        os_major_version: "{{ ansible_distribution_major_version | int }}"
+
+    - name: Run YUM update on RHEL 7
+      yum:
+        name: "*"
+        state: latest
+      when: os_major_version == 7
+
+    - name: Run DNF update on RHEL 8
+      dnf:
+        name: "*"
+        state: latest
+      when: os_major_version == 8
+
+    - name: List latest installed kernel package for RHEL 7
+      shell: "rpm -q {{ rhel7_kernel_package }} | sort -V | tail -n 1"
+      register: rhel7_kernel_result
+      changed_when: false
+      when: os_major_version == 7
+
+    - name: List latest installed kernel-core package for RHEL 8
+      shell: "rpm -q {{ rhel8_kernel_package }} | sort -V | tail -n 1"
+      register: rhel8_kernel_result
+      changed_when: false
+      when: os_major_version == 8
+
+    - name: Show latest kernel installed (RHEL 7)
+      debug:
+        msg: "Latest installed kernel (RHEL 7): {{ rhel7_kernel_result.stdout }}"
+      when: os_major_version == 7
+
+    - name: Show latest kernel installed (RHEL 8)
+      debug:
+        msg: "Latest installed kernel (RHEL 8): {{ rhel8_kernel_result.stdout }}"
+      when: os_major_version == 8
