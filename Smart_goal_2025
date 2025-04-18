@@ -1,0 +1,10 @@
+Smart Goals For 2025
+* Identify and remediate at least 95% of vulnerabilities flagged in the monthly vulnerability scans within 30 days of detection by Q4 2025.
+* Design and deploy a monthly patch management schedule using Ansible for all production RHEL and Ubuntu servers, ensuring 100% coverage with verification logs by the end of each month.
+* Maintain patch compliance score above 95% for all Linux systems starting from Q2 2025, as measured in the central compliance dashboard.
+* Resolve all Critical vulnerabilities within 7 days and High within 15 days of discovery, tracked via service tickets and monthly compliance reports starting from Q2 2025.
+* Conduct quarterly review meetings with system owners to review outstanding vulnerabilities and define mitigation actions.
+* Build and fully automate the Ubuntu local repository sync and client configuration process using apt-mirror and Ansible by end of Q2 2025.
+* Set up weekly cron jobs to sync the repository and monitor logs with email alerting for any sync or GPG signature errors by June 30, 2025.
+* Lead or actively contribute to at least two team-wide automation or hardening initiatives in 2025 (e.g., Ansible hardening playbook)
+* Deliver at least one internal knowledge-sharing session or documentation improvement per quarter to support team growth and cross-training.
